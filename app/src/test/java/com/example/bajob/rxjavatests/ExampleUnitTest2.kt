@@ -20,6 +20,14 @@ class ExampleUnitTest2 {
         }
     }
 
+    private fun loggingTransformer(): ObservableTransformer<Any, Any> {
+        return ObservableTransformer { item ->
+            item.doOnNext { it1 -> log("onNext $it1") }
+                    .doOnError { log("onError $it") }
+                    .doOnComplete { log("onComplete") }
+        }
+    }
+
     @Test
     fun justTest() {
         val disposableObserver: DisposableObserver<String> = Observable.just("some string")
@@ -39,14 +47,6 @@ class ExampleUnitTest2 {
         cleanup(disposableObserver)
 
         assertTrue(disposableObserver.isDisposed)
-    }
-
-    private fun loggingTransformer(): ObservableTransformer<Any, Any> {
-        return ObservableTransformer { item ->
-            item.doOnNext { it1 -> log("onNext $it1") }
-                    .doOnError { log("onError $it") }
-                    .doOnComplete { log("onComplete") }
-        }
     }
 
     @Test

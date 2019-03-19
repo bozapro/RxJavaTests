@@ -94,4 +94,23 @@ class ExampleUnitTest2 {
         cleanup(testCall)
         assertTrue(testCall.isDisposed)
     }
+
+    @Test
+    fun rxTimer() {
+        //read postDelay() aka timer(...)
+        val timerObservable = Observable.timer(3, TimeUnit.SECONDS)
+
+        val testCall = timerObservable
+                .compose(loggingTransformer())
+                .test()
+
+        testCall.awaitTerminalEvent()
+        testCall.assertComplete()
+                .assertValueCount(1)
+                .assertValue(0L)
+                .assertNoErrors()
+
+        cleanup(testCall)
+        assertTrue(testCall.isDisposed)
+    }
 }

@@ -5,6 +5,7 @@ import io.reactivex.ObservableTransformer
 import io.reactivex.disposables.Disposable
 import io.reactivex.internal.schedulers.IoScheduler
 import io.reactivex.observers.DisposableObserver
+import io.reactivex.schedulers.Schedulers
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.TimeUnit
@@ -81,14 +82,76 @@ class ExampleUnitTest2 {
     }
 
     @Test
-    fun justLongBackgroundOperationOperationRight(){
+    fun rxJustLongOperation() {
+        val testCall = Observable.just(someLongOperationThatReturnInteger())
+                .compose(loggingTransformer())
+                .test()
 
-        val just = Observable.just(someLongOperationThatReturnInteger())
+        testCall.awaitTerminalEvent()
+
+        testCall.assertComplete()
+                .assertValueCount(1)
+                .assertValue(123)
+                .assertNoErrors()
+
+        cleanup(testCall)
+        assertTrue(testCall.isDisposed)
+    }
+
+    @Test
+    fun justLongBackgroundOperationOperationRight() {
+
+        val testCall = Observable.just(someLongOperationThatReturnInteger())
                 .compose(loggingTransformer())
                 .subscribeOn(IoScheduler())
+                .test()
 
-        val testCall = just.test()
-        testCall.await(5, TimeUnit.SECONDS)
+        testCall.awaitTerminalEvent()
+
+        testCall.assertComplete()
+                .assertValueCount(1)
+                .assertValue(123)
+                .assertNoErrors()
+
+
+        cleanup(testCall)
+        assertTrue(testCall.isDisposed)
+    }
+
+    @Test
+    fun rxJustLongBackgroundOperationThatReturnsObservable() {
+
+        val testCall = Observable.defer { Observable.just(someLongOperationThatReturnInteger()) }
+                .compose(loggingTransformer())
+                .subscribeOn(IoScheduler())
+                .test()
+
+        testCall.awaitTerminalEvent()
+
+        testCall.assertComplete()
+                .assertValueCount(1)
+                .assertValue(123)
+                .assertNoErrors()
+
+
+        cleanup(testCall)
+        assertTrue(testCall.isDisposed)
+    }
+
+    @Test
+    fun rxJustLongBackgroundOperationThatReturnsSingle() {
+
+        val testCall = Observable.fromCallable { someLongOperationThatReturnInteger() }
+                .compose(loggingTransformer())
+                .subscribeOn(IoScheduler())
+                .test()
+
+        testCall.awaitTerminalEvent()
+
+        testCall.assertComplete()
+                .assertValueCount(1)
+                .assertValue(123)
+                .assertNoErrors()
 
 
         cleanup(testCall)
@@ -108,6 +171,42 @@ class ExampleUnitTest2 {
         testCall.assertComplete()
                 .assertValueCount(1)
                 .assertValue(0L)
+                .assertNoErrors()
+
+        cleanup(testCall)
+        assertTrue(testCall.isDisposed)
+    }
+
+    @Test
+    fun rxTimerSwitchThreads() {
+        val testCall = Observable.timer(3, TimeUnit.SECONDS)
+                .doOnNext { log(it) }
+                .observeOn(Schedulers.newThread())
+                .compose(loggingTransformer())
+                .test()
+
+        testCall.awaitTerminalEvent()
+
+        testCall.assertComplete()
+                .assertValueCount(1)
+                .assertValue(0L)
+                .assertNoErrors()
+
+        cleanup(testCall)
+        assertTrue(testCall.isDisposed)
+    }
+
+    @Test
+    fun rxInterval() {
+        val testCall = Observable.interval(1000, 499, TimeUnit.MILLISECONDS)
+                .compose(loggingTransformer())
+                .test()
+
+        testCall.await(5, TimeUnit.SECONDS)
+
+        testCall.assertNotComplete()
+                .assertValueCount(9)
+                .assertValueSequence(listOf<Long>(0, 1, 2, 3, 4, 5, 6, 7, 8))
                 .assertNoErrors()
 
         cleanup(testCall)
